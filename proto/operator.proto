@@ -1,0 +1,42 @@
+syntax = "proto3";
+package operatorpb;
+
+service OperatorRPC {
+  rpc Listeners (ListenersRequest) returns (ListenersResponse);
+  rpc Task (TaskRequest) returns (TaskResponse);
+}
+
+message ListenersRequest {
+  oneof listeners_command {
+    NewListener new_listener = 1;
+    Empty list_listeners = 2;
+  }
+}
+
+message NewListener {
+  string lhost = 1;
+  uint32 lport = 2;
+}
+
+message RepeatedNewListeners {
+  repeated NewListener new_listeners = 1;
+}
+
+message ListenersResponse {
+  oneof listeners_command {
+    Empty new_listener = 1;
+    RepeatedNewListeners list_listeners = 2;
+  }
+}
+
+message TaskRequest {
+  string cmd = 1;
+  string listener = 2;
+}
+
+message TaskResponse {
+  bytes stdout = 1;
+  bytes stderr = 2;
+}
+
+message Empty {}

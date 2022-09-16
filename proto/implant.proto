@@ -1,0 +1,35 @@
+syntax = "proto3";
+package implantpb;
+
+service ImplantRPC {
+  rpc GetTask (TaskRequest) returns (TaskResponse);
+  rpc PostResult (TaskResult) returns (Empty);
+}
+
+enum TaskType {
+  LsTask = 0;
+  PsTask = 1;
+  ExecTask = 2;
+}
+
+message TaskRequest {}
+
+message TaskResponse {
+  uint32 task_id = 1;
+  TaskType task_type = 2;
+  oneof task_payload {
+    ExecBody exec_task = 3;
+  }
+}
+
+message TaskResult {
+  uint32 id   = 1;
+  bytes stdout = 2;
+  bytes stderr = 3;
+}
+
+message ExecBody {
+  string cmd = 1;
+}
+
+message Empty {}
