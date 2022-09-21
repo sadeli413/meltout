@@ -1,14 +1,7 @@
 use clap::Parser;
-use std::collections::HashMap;
-
-use super::{Server, net::implant_server};
+use super::Server;
+use super::net::{implant_server, operator_server};
 use crate::share::{Console, Commands, Error, parsers};
-
-impl Server {
-    pub fn new() -> Server {
-        Server { listeners: HashMap::new() }
-    }
-}
 
 // General purpose commands for the server
 impl Commands for Server {
@@ -59,6 +52,25 @@ impl Commands for Server {
     }
 }
 
+// Special commands for the server
+impl Server {
+    fn operators(&self, parser: super::parsers::Operators) -> Result<(), Error> {
+        match &parser.command {
+            super::parsers::OperatorsCommands::Enable { lhost, lport } => {
+                let ip = lhost.parse()
+                    .map_err(|_| Error::InvalidIP(lhost.to_string()))?;
+                let addr = std::net::SocketAddr::new(ip, *lport);
+                let listener = operator_server::Listener::new(addr);
+                match listener.start_listener() {
+                    Ok(_) => println!("Started listening for operators on {}:{}", lhost, lport),
+                    Err(err) => eprintln!("Error, could listen for operators on {}:{}\n{:?}", lhost, lport, err)
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 // Add commands to the console
 pub fn add_commands(console: &mut Console<Server>) {
     console.commands.insert(
@@ -85,6 +97,15 @@ pub fn add_commands(console: &mut Console<Server>) {
             let parser = parsers::Task::try_parse_from(line)
                 .map_err(|e| Error::CommandParsingErr(e))?;
             meltout.task(parser)?;
+            Ok(())
+        }
+    );
+    console.commands.insert(
+        "operators".to_string(), 
+        |meltout, line| {
+            let parser = super::parsers::Operators::try_parse_from(line)
+                .map_err(|e| Error::CommandParsingErr(e))?;
+            meltout.operators(parser)?;
             Ok(())
         }
     );

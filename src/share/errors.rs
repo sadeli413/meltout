@@ -22,5 +22,8 @@ pub enum Error {
     ListenerStartErr(String),
 
     #[error("Invalid IP Address: `{0}`")]
-    InvalidIP(String)
+    InvalidIP(String),
+
+    #[error("Server Connect error:\n{0}")]
+    ServerConnectErr(String)
 }

@@ -9,9 +9,14 @@ edition = "2021"
 name = "meltout-server"
 path = "src/meltout-server.rs"
 
+[[bin]]
+name = "meltout-operator"
+path = "src/meltout-operator.rs"
+
 [dependencies]
 clap = { version = "3.2.21", features = ["derive", "color"] }
 crossbeam-queue = "0.3.6"
+futures = "0.3.24"
 hyper = "0.14.20"
 hyper-rustls = { version = "0.23.0", features = ["http2"] }
 inquire = "0.3.0"
