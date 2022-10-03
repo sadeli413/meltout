@@ -1,10 +1,10 @@
 use clap::Parser;
 use tokio::runtime::Handle;
-use crate::share::{Commands, Console, parsers, Error};
+use crate::share::{Commander, Console, parsers, Error};
 use super::Operator;
 use super::net::operatorpb::{ListenersRequest, listeners_request::ListenersCommand, NewListener};
 
-impl Commands for Operator {
+impl Commander for Operator {
     // TODO: Implant generation
     fn generate(&self, parser: parsers::Generate) -> Result<(), Error> {
         println!("{:?}", parser);
@@ -22,8 +22,8 @@ impl Commands for Operator {
                 });
                 
                 // Run the async method
-                let handle = Handle::current();
-                let _guard = handle.enter();
+                // let handle = Handle::current();
+                // let _guard = handle.enter();
                 let response = futures::executor::block_on(self.rpc.listeners(request))
                     .map_err(|e| Error::ServerConnectErr(e.to_string()))?
                     .into_inner();

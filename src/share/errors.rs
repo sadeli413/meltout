@@ -25,5 +25,8 @@ pub enum Error {
     InvalidIP(String),
 
     #[error("Server Connect error:\n{0}")]
-    ServerConnectErr(String)
+    ServerConnectErr(String),
+
+    #[error("{0}")]
+    DatabaseErr(sea_orm::DbErr)
 }

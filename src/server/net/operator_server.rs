@@ -1,12 +1,7 @@
-mod operatorpb {
-    tonic::include_proto!("operatorpb");
-}
-
-use crate::share::Error;
+use crate::share::{Error, operatorpb};
 use operatorpb::{listeners_request, listeners_response};
 use operatorpb::{Empty, ListenersRequest, ListenersResponse, NewListener, RepeatedNewListeners, TaskRequest, TaskResponse};
 use operatorpb::operator_rpc_server::{OperatorRpc, OperatorRpcServer};
-use prost::Message;
 use std::net::SocketAddr;
 use tonic::{Request, Response, Status};
 use tonic::transport::{Identity, Server, ServerTlsConfig};

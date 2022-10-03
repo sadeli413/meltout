@@ -3,15 +3,15 @@ pub mod parsers;
 use std::collections::HashMap;
 use rustyline::Editor;
 use super::errors::Error;
-use super::commands::{Commands, Handler};
+use super::commands::{Commander, Handler};
 
 // A CLI struct for both the server and operator
-pub struct Console<T: Commands> {
+pub struct Console<T: Commander> {
     pub commands: HashMap<String, Handler<T>>
 }
 
 impl<T> Console<T> 
-where T: Commands
+where T: Commander
 {
     // Create a console containing a hashmap of commands
     pub fn new() -> Console<T> {
@@ -34,9 +34,7 @@ where T: Commands
                     break
                 }
                 Err(Error::CommandParsingErr(e)) =>{
-                    if e.print().is_err() {
-                        eprintln!("{}", e)
-                    }
+                    eprintln!("{}", e.render().ansi())
                 }
                 Err(err) => eprintln!("{}", err)
             }

