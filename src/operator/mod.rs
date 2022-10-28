@@ -1,14 +1,14 @@
-mod net;
 mod commands;
+mod net;
 
 use crate::share::Error;
-use net::operatorpb::operator_rpc_client::OperatorRpcClient;
+use crate::share::operatorpb::operator_rpc_client::OperatorRpcClient;
 use tonic::transport::Channel;
 
 pub use commands::add_commands;
 
 pub struct Operator {
-    rpc: OperatorRpcClient<Channel>
+    rpc: OperatorRpcClient<Channel>,
 }
 
 impl Operator {

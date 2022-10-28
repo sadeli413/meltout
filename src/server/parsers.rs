@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 pub struct Operators {
     #[clap(subcommand)]
-    pub command: OperatorsCommands
+    pub command: OperatorsCommands,
 }
 
 #[derive(Subcommand)]
@@ -13,7 +13,7 @@ pub enum OperatorsCommands {
         #[clap(long, value_parser)]
         lhost: String,
 
-        #[clap(long, value_parser, default_value_t = 9001)]
-        lport: u16
-    }
+        #[clap(long, value_parser, default_value_t = 8001)]
+        lport: u16,
+    },
 }

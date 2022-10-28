@@ -11,20 +11,25 @@ impl MigrationName for Migration {
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.create_table(Table::create()
-            .table(Implant::Table)
-            .col(ColumnDef::new(Implant::Uuid)
-                 .uuid()
-                 .not_null()
-                 .primary_key()
+        manager
+            .create_table(
+                Table::create()
+                    .table(Implant::Table)
+                    .col(
+                        ColumnDef::new(Implant::Uuid)
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .to_owned(),
             )
-            .col(ColumnDef::new(Implant::Task).uuid())
-            .to_owned()
-        ).await
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(Implant::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(Implant::Table).to_owned())
+            .await
     }
 }
 
@@ -32,5 +37,4 @@ impl MigrationTrait for Migration {
 pub enum Implant {
     Table,
     Uuid,
-    Task
 }

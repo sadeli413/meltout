@@ -1,87 +1,77 @@
-use crate::share::{Error, operatorpb};
-use operatorpb::{listeners_request, listeners_response};
-use operatorpb::{Empty, ListenersRequest, ListenersResponse, NewListener, RepeatedNewListeners, TaskRequest, TaskResponse};
+use crate::server::controls::Controller;
+use crate::share::{operatorpb, Error};
 use operatorpb::operator_rpc_server::{OperatorRpc, OperatorRpcServer};
+// use operatorpb::{listeners_request, listeners_response};
+use operatorpb::{
+    ListenersRequest, ListenersResponse, ListImplants, ImplantsResponse, Empty, NewTaskRequest
+};
 use std::net::SocketAddr;
-use tonic::{Request, Response, Status};
+use std::sync::Arc;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
+use tonic::{Request, Response, Status};
 
 pub struct Listener {
-    addr: SocketAddr
+    addr: SocketAddr,
 }
 
 impl Listener {
-    pub fn new(addr: SocketAddr) -> Listener {
-        Listener { addr }
-    }
-}
+    pub fn new(addr: SocketAddr, ctl: Arc<Controller>) -> Result<Listener, Error> {
+        let cert =
+            std::fs::read("certs/server.pem").map_err(|e| Error::FileReadErr("certs/server.pem".to_string(), e.to_string()))?;
+        let key =
+            std::fs::read("certs/server.key").map_err(|e| Error::FileReadErr("certs/server.key".to_string(), e.to_string()))?;
+        let identity = Identity::from_pem(cert, key);
 
-impl Listener {
-    pub fn start_listener(&self) -> Result<(), Error> {
-        let cert = std::fs::read("certs/server.pem")
-            .map_err(|e| Error::ListenerStartErr(e.to_string()))?;
-        let key = std::fs::read("certs/server.key")
-            .map_err(|e| Error::ListenerStartErr(e.to_string()))?;
-        let identity =  Identity::from_pem(cert, key);
-
-        let service = OperatorService::new();
+        let service = OperatorService::new(ctl);
         let tls_config = ServerTlsConfig::new().identity(identity);
         let svc = OperatorRpcServer::new(service);
 
         let server = Server::builder()
             .tls_config(tls_config)
-            .map_err(|e| Error::ListenerStartErr(e.to_string()))?
+            .map_err(|_| Error::ListenerStartErr(addr.ip().to_string(), addr.port()))?
             .add_service(svc)
-            .serve(self.addr);
+            .serve(addr);
 
-        tokio::spawn(async move {
-            server.await
-        });
-        Ok(())
+        tokio::spawn(async move { server.await });
+
+        Ok(Listener { addr })
     }
 }
 
-struct OperatorService {}
+struct OperatorService {
+    ctl: Arc<Controller>
+}
 
 impl OperatorService {
-    fn new() -> OperatorService {
-        OperatorService {  }
+    fn new(ctl: Arc<Controller>) -> OperatorService {
+        OperatorService {
+            ctl
+        }
     }
 }
 
 #[tonic::async_trait]
 impl OperatorRpc for OperatorService {
-    async fn listeners(&self, request: Request<ListenersRequest>) -> Result<Response<ListenersResponse>, Status> {
-        let request = request.into_inner();
-        if let Some(cmd) = request.listeners_command {
-            let response = match cmd {
-                // Create a new listener
-                listeners_request::ListenersCommand::NewListener(new_cmd) => {
-                    let listeners_command = listeners_response::ListenersCommand::NewListener(Empty {});
-                    let listeners_command = Some(listeners_command);
-                    println!("{:?}", listeners_command);
-                    Response::new(ListenersResponse {listeners_command})
-                }
+    async fn listeners(
+        &self,
+        request: Request<ListenersRequest>,
+    ) -> Result<Response<ListenersResponse>, Status> {
+        let response = self.ctl.listenerctl(request.into_inner()).await
+            .map_err(|e| Status::unavailable(e.to_string()))?;
 
-                // List listeners
-                listeners_request::ListenersCommand::ListListeners(list_cmd) => {
-                    let new_listeners = vec![NewListener {lhost: "foobar".to_string(), lport: 1337}];
-                    let listeners_command = listeners_response::ListenersCommand::ListListeners(RepeatedNewListeners {new_listeners});
-                    let listeners_command = Some(listeners_command);
-                    Response::new(ListenersResponse {listeners_command})
-                }
-            };
-            return Ok(response);
-        } else {
-            return Err(Status::unavailable("TODO: fancy error message"));
-        }
+        Ok(Response::new(response))
     }
 
-    async fn task(&self, _: Request<TaskRequest>) -> Result<Response<TaskResponse>, Status> {
+    async fn new_task(&self, request: Request<NewTaskRequest>) -> Result<Response<Empty>, Status> {
+        let response = self.ctl.taskctl(request.into_inner()).await
+            .map_err(|e| Status::unavailable(e.to_string()))?;
 
-        Ok(Response::new(TaskResponse { 
-            stdout: vec![],
-            stderr: vec![]
-        }))
+        Ok(Response::new(response))
+    }
+
+    async fn implants(&self, _: Request<ListImplants>) -> Result<Response<ImplantsResponse>, Status> {
+        let response = self.ctl.implantctl().await
+            .map_err(|e| Status::unavailable(e.to_string()))?;
+        Ok(Response::new(response))
     }
 }

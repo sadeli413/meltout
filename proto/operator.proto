@@ -2,8 +2,15 @@ syntax = "proto3";
 package operatorpb;
 
 service OperatorRPC {
+  rpc Implants (ListImplants) returns (ImplantsResponse);
   rpc Listeners (ListenersRequest) returns (ListenersResponse);
-  rpc Task (TaskRequest) returns (TaskResponse);
+  rpc NewTask (NewTaskRequest) returns (Empty);
+}
+
+message ListImplants {}
+
+message ImplantsResponse {
+  repeated string implants = 1;
 }
 
 message ListenersRequest {
@@ -14,8 +21,9 @@ message ListenersRequest {
 }
 
 message NewListener {
-  string lhost = 1;
-  uint32 lport = 2;
+  string id = 1;
+  string lhost = 2;
+  uint32 lport = 3;
 }
 
 message RepeatedNewListeners {
@@ -29,9 +37,9 @@ message ListenersResponse {
   }
 }
 
-message TaskRequest {
+message NewTaskRequest {
   string cmd = 1;
-  string listener = 2;
+  string implantid = 2;
 }
 
 message TaskResponse {

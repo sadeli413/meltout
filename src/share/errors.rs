@@ -6,6 +6,9 @@ pub enum Error {
     #[error("")]
     CommandParsingErr(clap::Error),
 
+    #[error("File Read error: `{0}`, `{1}`")]
+    FileReadErr(String, String),
+
     #[error("Input error: `{0}`")]
     InputErr(String),
 
@@ -18,8 +21,8 @@ pub enum Error {
     #[error("{0}")]
     ReadlineErr(String),
 
-    #[error("Server start error: `{0}`")]
-    ListenerStartErr(String),
+    #[error("Listener start error: `{0}`:`{1}`")]
+    ListenerStartErr(String, u16),
 
     #[error("Invalid IP Address: `{0}`")]
     InvalidIP(String),
@@ -28,5 +31,8 @@ pub enum Error {
     ServerConnectErr(String),
 
     #[error("{0}")]
-    DatabaseErr(sea_orm::DbErr)
+    DatabaseErr(sea_orm::DbErr),
+
+    #[error("Invalid UUID: `{0}`")]
+    InvalidUUID(String),
 }

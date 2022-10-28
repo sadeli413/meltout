@@ -4,6 +4,6 @@ mod errors;
 mod pb;
 
 pub use commands::Commander;
-pub use console::{Console, parsers};
+pub use console::{parsers, Console};
 pub use errors::Error;
 pub use pb::*;

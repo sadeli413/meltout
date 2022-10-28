@@ -2,8 +2,14 @@ syntax = "proto3";
 package implantpb;
 
 service ImplantRPC {
+  rpc Register(Registration) returns (Empty);
   rpc GetTask (TaskRequest) returns (TaskResponse);
   rpc PostResult (TaskResult) returns (Empty);
+}
+
+/* Add other things like OS, Arch, Username, Hostname, etc */
+message Registration {
+  string implant_id = 1;
 }
 
 enum TaskType {
@@ -12,10 +18,13 @@ enum TaskType {
   ExecTask = 2;
 }
 
-message TaskRequest {}
+/* TODO: Put the UUID in the certificate or the metadata, not the actual request */
+message TaskRequest {
+  string implant_id = 1;
+}
 
 message TaskResponse {
-  uint32 task_id = 1;
+  string task_id = 1;
   TaskType task_type = 2;
   oneof task_payload {
     ExecBody exec_task = 3;
@@ -23,7 +32,7 @@ message TaskResponse {
 }
 
 message TaskResult {
-  uint32 id   = 1;
+  string id   = 1;
   bytes stdout = 2;
   bytes stderr = 3;
 }

@@ -1,6 +1,4 @@
-pub mod operatorpb {
-    tonic::include_proto!("operatorpb");
-}
+use crate::share::operatorpb;
 
 // use std::net::SocketAddr;
 
@@ -9,11 +7,12 @@ pub mod operatorpb {
 use operatorpb::operator_rpc_client::OperatorRpcClient;
 // use operatorpb::listeners_request;
 // use operatorpb::{ListenersRequest, ListenersResponse};
-use tonic::transport::{Certificate, Channel, ClientTlsConfig, Uri};
 use crate::share::Error;
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Uri};
 
 pub async fn new_rpcclient(server_url: String) -> Result<OperatorRpcClient<Channel>, Error> {
-    let pem = tokio::fs::read("certs/ca.pem").await
+    let pem = tokio::fs::read("certs/ca.pem")
+        .await
         .map_err(|e| Error::ServerConnectErr(e.to_string()))?;
 
     let ca = Certificate::from_pem(pem);
@@ -23,7 +22,8 @@ pub async fn new_rpcclient(server_url: String) -> Result<OperatorRpcClient<Chann
         .domain_name("ZHJvcGxldHNlcnZlciAK.YzIK");
 
     // let channel = Channel::from_static(url)
-    let uri = server_url.parse::<Uri>()
+    let uri = server_url
+        .parse::<Uri>()
         .map_err(|e| Error::ServerConnectErr(e.to_string()))?;
 
     let channel = Channel::builder(uri)
@@ -32,7 +32,7 @@ pub async fn new_rpcclient(server_url: String) -> Result<OperatorRpcClient<Chann
         .connect()
         .await
         .map_err(|e| Error::ServerConnectErr(e.to_string()))?;
-    
+
     let client = OperatorRpcClient::new(channel);
     Ok(client)
 }

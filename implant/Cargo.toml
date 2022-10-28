@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.2.21", features = ["derive", "color"] }
 http = "0.2.8"
 hyper = "0.14.20"
 hyper-rustls = { version = "0.23.0", features = ["http2"] }
@@ -14,11 +13,12 @@ prost = "0.11.0"
 rustls-pemfile = "1.0.1"
 rustyline = "10.0.0"
 shlex = "1.1.0"
-tokio = { version = "1.1.0", features = ["fs", "rt-multi-thread"] }
+tokio = { version = "1.21.2", features = ["fs", "rt-multi-thread"] }
 tokio-rustls = "0.23.4"
-tonic = { version = "0.8.1", features = ["tls"] }
+tonic = { version = "0.8.2", features = ["tls"] }
 tower = "0.4.13"
 tower-http = { version = "0.3.4", features = ["add-extension", "util"] }
+uuid = {version = "1.2.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
 
 [build-dependencies]
 tonic-build = "0.8.0"
