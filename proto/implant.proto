@@ -2,13 +2,18 @@ syntax = "proto3";
 package implantpb;
 
 service ImplantRPC {
-  rpc Register(Registration) returns (Empty);
+  rpc Register(Registration) returns (Confirmation);
   rpc GetTask (TaskRequest) returns (TaskResponse);
   rpc PostResult (TaskResult) returns (Empty);
 }
 
 /* Add other things like OS, Arch, Username, Hostname, etc */
 message Registration {
+  string implant_id = 1;
+}
+
+/* Registration confirmed */
+message Confirmation {
   string implant_id = 1;
 }
 

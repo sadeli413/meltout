@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use super::entities::implants;
 use super::migration::Migrator;
 use crate::server::net::implant_server::Listener;
 use crate::share::{implantpb, Error};
 use sea_orm::{ActiveModelTrait, Database, DatabaseConnection, DbErr, EntityTrait, Set};
 use sea_orm_migration::MigratorTrait;
+use std::collections::HashMap;
 
 pub struct Db {
     conn: DatabaseConnection,
@@ -37,17 +37,16 @@ impl Db {
     pub async fn register_implant(
         &self,
         _registration: implantpb::Registration,
-    ) -> Result<(), Error> {
-        let registration = implants::ActiveModel {
-            uuid: Set(uuid::Uuid::new_v4())
-        };
+    ) -> Result<uuid::Uuid, Error> {
+        let uuid = uuid::Uuid::new_v4();
+        let registration = implants::ActiveModel { uuid: Set(uuid) };
 
         registration
             .insert(&self.conn)
             .await
             .map_err(|e| Error::DatabaseErr(e))?;
 
-        Ok(())
+        Ok(uuid)
     }
 
     pub async fn list_implants(&self) -> Result<Vec<String>, Error> {

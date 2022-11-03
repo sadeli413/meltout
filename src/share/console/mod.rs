@@ -1,13 +1,18 @@
+mod notifications;
 pub mod parsers;
 
 use super::commands::{Commander, Handler};
 use super::errors::Error;
+use super::operatorpb::TaskResponse;
+use notifications::Notifications;
 use rustyline::Editor;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 
 // A CLI struct for both the server and operator
 pub struct Console<T: Commander> {
     pub commands: HashMap<String, Handler<T>>,
+    pub notifications_tx: Sender<TaskResponse>,
 }
 
 impl<T> Console<T>
@@ -16,8 +21,13 @@ where
 {
     // Create a console containing a hashmap of commands
     pub fn new() -> Console<T> {
+        // Start listening for notifications
+        let (notifications, tx) = Notifications::new();
+        tokio::spawn(async move { notifications.listen_loop() });
+
         Console {
             commands: HashMap::new(),
+            notifications_tx: tx,
         }
     }
 

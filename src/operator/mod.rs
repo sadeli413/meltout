@@ -1,8 +1,8 @@
 mod commands;
 mod net;
 
-use crate::share::Error;
 use crate::share::operatorpb::operator_rpc_client::OperatorRpcClient;
+use crate::share::Error;
 use tonic::transport::Channel;
 
 pub use commands::add_commands;

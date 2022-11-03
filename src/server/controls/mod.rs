@@ -1,11 +1,11 @@
-use std::sync::Arc;
 use super::db;
 use super::net;
 use crate::share::{implantpb, operatorpb, Error};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use operatorpb::ImplantsResponse;
 use operatorpb::listeners_request::ListenersCommand;
+use operatorpb::ImplantsResponse;
 
 pub struct Controller {
     db: Arc<Mutex<db::Db>>,
@@ -75,7 +75,10 @@ impl Controller {
         Ok(response)
     }
 
-    pub async fn taskctl(&self, request: operatorpb::NewTaskRequest) -> Result<operatorpb::Empty, Error> {
+    pub async fn taskctl(
+        &self,
+        request: operatorpb::NewTaskRequest,
+    ) -> Result<operatorpb::Empty, Error> {
         let task = implantpb::TaskResponse {
             task_id: uuid::Uuid::new_v4().to_string(),
             task_payload: Some(implantpb::task_response::TaskPayload::ExecTask(
@@ -90,9 +93,7 @@ impl Controller {
 
     pub async fn implantctl(&self) -> Result<ImplantsResponse, Error> {
         let uuids = self.db.lock().await.list_implants().await?;
-        let response = ImplantsResponse {
-            implants: uuids
-        };
+        let response = ImplantsResponse { implants: uuids };
         Ok(response)
     }
 }

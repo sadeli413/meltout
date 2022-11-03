@@ -1,7 +1,7 @@
 use crate::server::db;
 use crate::share::{implantpb, Error};
 use implantpb::implant_rpc_server::{ImplantRpc, ImplantRpcServer};
-use implantpb::{Empty, Registration, TaskRequest, TaskResponse, TaskResult};
+use implantpb::{Confirmation, Empty, Registration, TaskRequest, TaskResponse, TaskResult};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -18,10 +18,10 @@ pub struct Listener {
 impl Listener {
     pub fn new(addr: SocketAddr, db: Arc<Mutex<db::Db>>) -> Result<Listener, Error> {
         // TODO: Auto generate certs instead of using hard-coded certs
-        let cert =
-            std::fs::read("certs/server.pem").map_err(|e| Error::FileReadErr("certs/server.pem".to_string(), e.to_string()))?;
-        let key =
-            std::fs::read("certs/server.key").map_err(|e| Error::FileReadErr("certs/server.key".to_string(), e.to_string()))?;
+        let cert = std::fs::read("certs/server.pem")
+            .map_err(|e| Error::FileReadErr("certs/server.pem".to_string(), e.to_string()))?;
+        let key = std::fs::read("certs/server.key")
+            .map_err(|e| Error::FileReadErr("certs/server.key".to_string(), e.to_string()))?;
         let identity = Identity::from_pem(cert, key);
 
         let service = ImplantService::new(Arc::clone(&db));
@@ -60,16 +60,24 @@ impl ImplantService {
 #[tonic::async_trait]
 impl ImplantRpc for ImplantService {
     // Let an implant register with the server
-    async fn register(&self, request: Request<Registration>) -> Result<Response<Empty>, Status> {
+    async fn register(
+        &self,
+        request: Request<Registration>,
+    ) -> Result<Response<Confirmation>, Status> {
         let request = request.into_inner();
-        self.db
+        // Register the implant
+        let implant_id = self
+            .db
             .lock()
             .await
             .register_implant(request)
             .await
-            .map_err(|_| Status::unavailable(""))?;
+            .map_err(|_| Status::unavailable(""))?
+            .to_string();
 
-        Ok(Response::new(Empty {}))
+        let response = Confirmation { implant_id };
+
+        Ok(Response::new(response))
     }
 
     // Let an implant retrieve a task

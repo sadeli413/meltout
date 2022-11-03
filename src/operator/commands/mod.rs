@@ -1,12 +1,12 @@
 use clap::Parser;
 // use tokio::runtime::Handle;
 // use crate::share::operatorpb::{listeners_request::ListenersCommand, ListenersRequest, NewListener, Empty};
-use crate::share::operatorpb::listeners_response::ListenersCommand::{NewListener, ListListeners};
+use super::Operator;
+use crate::share::operatorpb::listeners_response::ListenersCommand::{ListListeners, NewListener};
 use crate::share::{parsers, Commander, Console, Error};
 use futures::executor::block_on;
 use paste::paste;
 use prettytable::row;
-use super::Operator;
 
 impl Commander for Operator {
     // TODO: Implant generation
@@ -21,7 +21,7 @@ impl Commander for Operator {
         let response = block_on(self.rpc.listeners(request))
             .map_err(|e| Error::ServerConnectErr(e.to_string()))?
             .into_inner();
-        
+
         // Print out the response
         if let Some(cmd) = response.listeners_command {
             match cmd {
@@ -45,8 +45,7 @@ impl Commander for Operator {
     // Create a task
     fn task(&mut self, parser: parsers::Task) -> Result<(), Error> {
         let request = parser.to_protobuf();
-        block_on(self.rpc.new_task(request))
-            .map_err(|e| Error::ServerConnectErr(e.to_string()))?;
+        block_on(self.rpc.new_task(request)).map_err(|e| Error::ServerConnectErr(e.to_string()))?;
 
         println!("Added `{}` to tasks", parser.cmd);
         Ok(())

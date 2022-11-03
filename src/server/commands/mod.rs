@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use super::net::operator_server;
+use super::parsers as server_parsers;
 use super::Server;
 use crate::share::parsers as share_parsers;
-use crate::share::{Commander, Console, Error, operatorpb};
+use crate::share::{operatorpb, Commander, Console, Error};
 use clap::Parser;
-use paste::paste;
 use futures::executor::block_on;
+use paste::paste;
 use prettytable::row;
-use super::parsers as server_parsers;
 
 // General purpose commands for the server
 impl Commander for Server {
@@ -87,4 +87,3 @@ pub fn add_commands(console: &mut Console<Server>) {
     crate::add_command!(console, share_parsers, implants);
     crate::add_command!(console, server_parsers, operators);
 }
-
