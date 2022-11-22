@@ -64,8 +64,9 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn to_protobuf(&self) -> NewTaskRequest {
+    pub fn to_protobuf(&self, operatorid: String) -> NewTaskRequest {
         NewTaskRequest {
+            operatorid,
             cmd: self.cmd.clone(),
             implantid: self.implant_id.clone(),
         }

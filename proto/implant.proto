@@ -28,6 +28,7 @@ message TaskRequest {
   string implant_id = 1;
 }
 
+/* The task received by an implant */
 message TaskResponse {
   string task_id = 1;
   TaskType task_type = 2;

@@ -44,7 +44,7 @@ impl Commander for Operator {
 
     // Create a task
     fn task(&mut self, parser: parsers::Task) -> Result<(), Error> {
-        let request = parser.to_protobuf();
+        let request = parser.to_protobuf(self.id.clone());
         block_on(self.rpc.new_task(request)).map_err(|e| Error::ServerConnectErr(e.to_string()))?;
 
         println!("Added `{}` to tasks", parser.cmd);

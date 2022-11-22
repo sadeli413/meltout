@@ -41,7 +41,7 @@ impl Commander for Server {
     }
 
     fn task(&mut self, parser: share_parsers::Task) -> Result<(), Error> {
-        let request = parser.to_protobuf();
+        let request = parser.to_protobuf("0".to_string());
         block_on(self.ctl.taskctl(request))?;
 
         println!("Added `{}` to tasks", parser.cmd);

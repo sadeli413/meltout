@@ -14,9 +14,9 @@ async fn main() {
             .await
             .unwrap(),
     ));
-    let ctl = Arc::new(server::controls::Controller::new(db));
-    let mut server = Server::new(ctl);
     let mut console = Console::new();
+    let ctl = server::controls::Controller::new(db);
+    let (mut server, notifications_rx) = Server::new(Arc::new(ctl)).await;
     server::add_commands(&mut console);
-    console.cli_loop(&mut server);
+    console.cli_loop(&mut server, notifications_rx);
 }

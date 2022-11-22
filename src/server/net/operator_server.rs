@@ -1,12 +1,13 @@
 use crate::server::controls::Controller;
 use crate::share::{operatorpb, Error};
 use operatorpb::operator_rpc_server::{OperatorRpc, OperatorRpcServer};
-// use operatorpb::{listeners_request, listeners_response};
 use operatorpb::{
-    Empty, ImplantsResponse, ListImplants, ListenersRequest, ListenersResponse, NewTaskRequest,
+    Confirmation, Empty, ImplantsResponse, ListImplants, ListenersRequest, ListenersResponse,
+    NewTaskRequest, Notification, Registration,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tonic::{Request, Response, Status};
 
@@ -50,6 +51,24 @@ impl OperatorService {
 
 #[tonic::async_trait]
 impl OperatorRpc for OperatorService {
+    async fn register(
+        &self,
+        _request: Request<Registration>,
+    ) -> Result<Response<Confirmation>, Status> {
+        let confirmation = self.ctl.register().await;
+        Ok(Response::new(confirmation))
+    }
+
+    type NotificationsStream = ReceiverStream<Result<Notification, Status>>;
+    async fn notifications(
+        &self,
+        request: Request<Confirmation>,
+    ) -> Result<Response<Self::NotificationsStream>, Status> {
+        let confirmation = request.into_inner();
+        let rx = self.ctl.notifications(confirmation).await;
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
     async fn listeners(
         &self,
         request: Request<ListenersRequest>,

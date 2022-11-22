@@ -4,7 +4,10 @@ pub mod db;
 mod net;
 mod parsers;
 
+use crate::share::operatorpb::Notification;
 use std::sync::Arc;
+use tokio::sync::mpsc::Receiver;
+use tonic::Status;
 
 pub use commands::add_commands;
 
@@ -13,7 +16,11 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(ctl: Arc<controls::Controller>) -> Server {
-        Server { ctl }
+    pub async fn new(
+        ctl: Arc<controls::Controller>,
+    ) -> (Server, Receiver<Result<Notification, Status>>) {
+        let confirmation = ctl.register_server().await;
+        let rx = ctl.notifications(confirmation).await;
+        (Server { ctl }, rx)
     }
 }

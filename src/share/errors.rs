@@ -35,4 +35,16 @@ pub enum Error {
 
     #[error("Invalid UUID: `{0}`")]
     InvalidUUID(String),
+
+    #[error("tokio channel error: `{0}`")]
+    ChannelErr(String),
+
+    #[error("Operator not found: `{0}`")]
+    OperatorNotFound(String),
+
+    #[error("gRPC error: {0}")]
+    RpcError(tonic::Status),
+
+    #[error("IO error; `{0}`")]
+    IOErr(std::io::Error),
 }

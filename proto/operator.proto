@@ -2,9 +2,22 @@ syntax = "proto3";
 package operatorpb;
 
 service OperatorRPC {
+  rpc Register(Registration) returns (Confirmation);
   rpc Implants (ListImplants) returns (ImplantsResponse);
   rpc Listeners (ListenersRequest) returns (ListenersResponse);
   rpc NewTask (NewTaskRequest) returns (Empty);
+  rpc Notifications (Confirmation) returns (stream Notification);
+}
+
+message Registration {}
+
+message Confirmation {
+  string operator_id = 1;
+}
+
+message Notification {
+  bytes stdout = 1;
+  bytes stderr = 2;
 }
 
 message ListImplants {}
@@ -40,6 +53,7 @@ message ListenersResponse {
 message NewTaskRequest {
   string cmd = 1;
   string implantid = 2;
+  string operatorid = 3;
 }
 
 message TaskResponse {
@@ -48,3 +62,4 @@ message TaskResponse {
 }
 
 message Empty {}
+

@@ -1,18 +1,17 @@
-mod notifications;
 pub mod parsers;
 
 use super::commands::{Commander, Handler};
 use super::errors::Error;
-use super::operatorpb::TaskResponse;
-use notifications::Notifications;
+use crate::share::operatorpb::Notification;
 use rustyline::Editor;
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
+use std::io::Write;
+use tokio::sync::mpsc::Receiver;
+use tonic::Status;
 
 // A CLI struct for both the server and operator
 pub struct Console<T: Commander> {
     pub commands: HashMap<String, Handler<T>>,
-    pub notifications_tx: Sender<TaskResponse>,
 }
 
 impl<T> Console<T>
@@ -21,22 +20,25 @@ where
 {
     // Create a console containing a hashmap of commands
     pub fn new() -> Console<T> {
-        // Start listening for notifications
-        let (notifications, tx) = Notifications::new();
-        tokio::spawn(async move { notifications.listen_loop() });
-
         Console {
             commands: HashMap::new(),
-            notifications_tx: tx,
         }
     }
 
     // Accept user input
-    pub fn cli_loop(&self, meltout: &mut T) {
+    pub fn cli_loop(
+        &self,
+        meltout: &mut T,
+        notifications_rx: Receiver<Result<Notification, Status>>,
+    ) {
         // TODO: set a console root home to store history
         let history = "history.txt";
         let mut rl = rustyline::Editor::<()>::new().unwrap();
         let _ = rl.load_history(history);
+
+        tokio::spawn(async move {
+            notification_loop(notifications_rx).await;
+        });
 
         loop {
             match self.get_input(&mut rl, meltout) {
@@ -80,4 +82,23 @@ where
 
         Ok(())
     }
+}
+
+async fn notification_loop(mut notifications_rx: Receiver<Result<Notification, Status>>) {
+    while let Some(notification) = notifications_rx.recv().await {
+        if let Err(e) = display_notification(notification) {
+            eprintln!("{}", e);
+        }
+    }
+}
+
+fn display_notification(notification: Result<Notification, Status>) -> Result<(), Error> {
+    let n = notification.map_err(|e| Error::RpcError(e))?;
+    std::io::stdout()
+        .write_all(&n.stdout)
+        .map_err(|e| Error::IOErr(e))?;
+    std::io::stderr()
+        .write_all(&n.stderr)
+        .map_err(|e| Error::IOErr(e))?;
+    Ok(())
 }
