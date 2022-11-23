@@ -38,7 +38,8 @@ impl Db {
     }
 
     pub fn pop_task(&mut self, task_id: String) -> Option<tasks::Task> {
-        self.tasks.iter()
+        self.tasks
+            .iter()
             .position(|t| t.task.task_id == task_id)
             .map(|i| self.tasks.swap_remove(i))
     }

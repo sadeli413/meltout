@@ -1,11 +1,11 @@
 pub mod parsers;
+mod notifications;
 
 use super::commands::{Commander, Handler};
 use super::errors::Error;
 use crate::share::operatorpb::Notification;
 use rustyline::Editor;
 use std::collections::HashMap;
-use std::io::Write;
 use tokio::sync::mpsc::Receiver;
 use tonic::Status;
 
@@ -16,6 +16,7 @@ pub struct Console<T: Commander> {
 
 impl<T> Console<T>
 where
+    // A generic for either a server or an operator
     T: Commander,
 {
     // Create a console containing a hashmap of commands
@@ -37,7 +38,7 @@ where
         let _ = rl.load_history(history);
 
         tokio::spawn(async move {
-            notification_loop(notifications_rx).await;
+            notifications::notification_loop(notifications_rx).await;
         });
 
         loop {
@@ -73,6 +74,11 @@ where
     fn parse_cmd(&self, meltout: &mut T, line: Vec<&str>) -> Result<(), Error> {
         let cmd = line.get(0).ok_or_else(|| Error::CommandNotFound)?;
 
+        if cmd == &"help" {
+            self.help();
+            return Ok(());
+        }
+
         let handler = self
             .commands
             .get(&cmd.to_string())
@@ -82,23 +88,11 @@ where
 
         Ok(())
     }
-}
 
-async fn notification_loop(mut notifications_rx: Receiver<Result<Notification, Status>>) {
-    while let Some(notification) = notifications_rx.recv().await {
-        if let Err(e) = display_notification(notification) {
-            eprintln!("{}", e);
+    fn help(&self) {
+        for c in self.commands.keys() {
+            println!("{}", c);
         }
     }
 }
 
-fn display_notification(notification: Result<Notification, Status>) -> Result<(), Error> {
-    let n = notification.map_err(|e| Error::RpcError(e))?;
-    std::io::stdout()
-        .write_all(&n.stdout)
-        .map_err(|e| Error::IOErr(e))?;
-    std::io::stderr()
-        .write_all(&n.stderr)
-        .map_err(|e| Error::IOErr(e))?;
-    Ok(())
-}
