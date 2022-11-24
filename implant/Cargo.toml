@@ -7,18 +7,19 @@ edition = "2021"
 
 [dependencies]
 http = "0.2.8"
-hyper = "0.14.20"
-hyper-rustls = { version = "0.23.0", features = ["http2"] }
-prost = "0.11.0"
+hyper = "0.14.23"
+hyper-rustls = { version = "0.23.1", features = ["http2"] }
+prost = "0.11.2"
+rust-embed = { version = "6.4.2", features = ["compression", "interpolate-folder-path", "include-exclude"]}
 rustls-pemfile = "1.0.1"
 rustyline = "10.0.0"
 shlex = "1.1.0"
-tokio = { version = "1.21.2", features = ["fs", "rt-multi-thread"] }
+tokio = { version = "1.22.0", features = ["fs", "rt-multi-thread"] }
 tokio-rustls = "0.23.4"
 tonic = { version = "0.8.2", features = ["tls"] }
 tower = "0.4.13"
 tower-http = { version = "0.3.4", features = ["add-extension", "util"] }
-uuid = {version = "1.2.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
+uuid = {version = "1.2.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
 
 [build-dependencies]
-tonic-build = "0.8.0"
+tonic-build = "0.8.2"

