@@ -1,9 +1,12 @@
+use clap::Parser;
+
 mod operator;
 mod share;
 
 #[tokio::main]
 async fn main() {
-    let (mut opr, notifications) = operator::Operator::new("https://127.0.0.1:8001".to_string())
+    let cli = operator::args::Cli::parse();
+    let (mut opr, notifications) = operator::Operator::new(cli.server, cli.rootca, cli.name)
         .await
         .unwrap();
     let mut console = share::Console::new();

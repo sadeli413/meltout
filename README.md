@@ -1,6 +1,8 @@
 # Meltout
 
-Meltout is a command and control framework. This is basically a toy in developement, so please don't use this in an actual engagement.
+Meltout is a command and control framework. This is basically a toy in developement.
+
+There is no authentication in this thing yet so don't actually use this.
 
 ## Features
 - Meltout supports (optional) multiplayer.
