@@ -23,17 +23,13 @@ meltout:~$ cargo run --bin meltout-server
 
 3. Start listening for implants
 ```
->> listeners new --lhost 172.17.0.2
+>> listeners new --lhost 172.17.0.2 --server-pem certs/server.pem --server-key certs/server.key
 ```
 
-## Running the Implant for Development
-1. Run another docker container
+## Compiling the Implant
 ```
-$ docker run --rm --name implant --hostname implant -it meltout
+meltout:~$ cd implant
+meltout:~/implant$ MELTOUT_CERT_FOLDER=../certs/ MELTOUT_DOMAIN_NAME='meltout.server' MELTOUT_ENDPOINT='https://172.17.0.2:9001' cargo build --release
 ```
 
-2. Run the implant
-```
-implant:~$ cd implant
-implant:~/implant$ MELTOUT_CERT_FOLDER=../certs/ MELTOUT_DOMAIN_NAME='randomthinghere.server' MELTOUT_ENDPOINT='https://172.17.0.2:9001' cargo run
-```
+The binary should be located in `~/implant/target/release/implant`.

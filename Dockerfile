@@ -17,8 +17,8 @@ RUN cargo clean && \
     rm -rf certs  && \
     mkdir certs && \
     cd certs && \
-    CAROOT=$PWD mkcert -ecdsa randomthinghere.server && \
-    mv randomthinghere.server.pem server.pem && \
-    mv randomthinghere.server-key.pem server.key
+    CAROOT=$PWD mkcert -ecdsa meltout.server && \
+    mv meltout.server.pem server.pem && \
+    mv meltout.server-key.pem server.key
 
 CMD [ "/bin/bash" ]
