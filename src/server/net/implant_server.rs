@@ -16,12 +16,16 @@ pub struct Listener {
 }
 
 impl Listener {
-    pub fn new(addr: SocketAddr, db: Arc<Mutex<db::Db>>) -> Result<Listener, Error> {
+    pub fn new(
+        addr: SocketAddr,
+        db: Arc<Mutex<db::Db>>,
+        pem: String,
+        key: String,
+    ) -> Result<Listener, Error> {
         // TODO: Auto generate certs instead of using hard-coded certs
-        let cert = std::fs::read("certs/server.pem")
-            .map_err(|e| Error::FileReadErr("certs/server.pem".to_string(), e.to_string()))?;
-        let key = std::fs::read("certs/server.key")
-            .map_err(|e| Error::FileReadErr("certs/server.key".to_string(), e.to_string()))?;
+        let cert =
+            std::fs::read(pem.clone()).map_err(|e| Error::FileReadErr(pem, e.to_string()))?;
+        let key = std::fs::read(key.clone()).map_err(|e| Error::FileReadErr(key, e.to_string()))?;
         let identity = Identity::from_pem(cert, key);
 
         let service = ImplantService::new(db);

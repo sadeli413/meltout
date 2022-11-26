@@ -1,10 +1,14 @@
 use crate::share::operatorpb;
 
-use operatorpb::operator_rpc_client::OperatorRpcClient;
 use crate::share::Error;
+use operatorpb::operator_rpc_client::OperatorRpcClient;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Uri};
 
-pub async fn new_rpcclient(server_url: String, rootca: String, domain_name: String) -> Result<OperatorRpcClient<Channel>, Error> {
+pub async fn new_rpcclient(
+    server_url: String,
+    rootca: String,
+    domain_name: String,
+) -> Result<OperatorRpcClient<Channel>, Error> {
     let pem = tokio::fs::read(rootca)
         .await
         .map_err(|e| Error::ServerConnectErr(e.to_string()))?;

@@ -1,5 +1,5 @@
-pub mod parsers;
 mod notifications;
+pub mod parsers;
 
 use super::commands::{Commander, Handler};
 use super::errors::Error;
@@ -95,4 +95,3 @@ where
         }
     }
 }
-

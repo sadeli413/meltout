@@ -33,20 +33,26 @@ message ListenersRequest {
   }
 }
 
-message NewListener {
+message Listener {
   string id = 1;
   string lhost = 2;
   uint32 lport = 3;
 }
 
-message RepeatedNewListeners {
-  repeated NewListener new_listeners = 1;
+message NewListener {
+  Listener listener = 1;
+  string server_pem = 2;
+  string server_key = 3;
+}
+
+message ListListeners {
+  repeated Listener listeners = 1;
 }
 
 message ListenersResponse {
   oneof listeners_command {
     Empty new_listener = 1;
-    RepeatedNewListeners list_listeners = 2;
+    ListListeners list_listeners = 2;
   }
 }
 

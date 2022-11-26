@@ -1,6 +1,6 @@
 pub mod args;
-mod operator;
 mod commands;
 mod net;
+mod operator;
 
 pub use operator::*;

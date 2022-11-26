@@ -27,12 +27,22 @@ impl Controller {
         let response = match req {
             ListenersCommand::NewListener(new_listener) => {
                 // Create a new listener
-                let ip = new_listener
+                let listener = new_listener
+                    .listener
+                    .ok_or_else(|| Error::ListenerStartErr("".to_string(), 0))?;
+
+                let ip = listener
                     .lhost
                     .parse()
-                    .map_err(|_| Error::InvalidIP(new_listener.lhost.to_string()))?;
-                let addr = std::net::SocketAddr::new(ip, new_listener.lport as u16);
-                let listener = net::implant_server::Listener::new(addr, Arc::clone(&self.db))?;
+                    .map_err(|_| Error::InvalidIP(listener.lhost))?;
+
+                let addr = std::net::SocketAddr::new(ip, listener.lport as u16);
+                let listener = net::implant_server::Listener::new(
+                    addr,
+                    Arc::clone(&self.db),
+                    new_listener.server_pem,
+                    new_listener.server_key,
+                )?;
 
                 // Add the listener to the db
                 self.db.lock().await.listeners.push(listener);
@@ -54,7 +64,7 @@ impl Controller {
                     .await
                     .listeners
                     .iter()
-                    .map(|l| operatorpb::NewListener {
+                    .map(|l| operatorpb::Listener {
                         id: l.uuid.to_string(),
                         lhost: l.lhost.clone(),
                         lport: l.lport as u32,
@@ -64,9 +74,7 @@ impl Controller {
                 operatorpb::ListenersResponse {
                     listeners_command: Some(
                         operatorpb::listeners_response::ListenersCommand::ListListeners(
-                            operatorpb::RepeatedNewListeners {
-                                new_listeners: listeners,
-                            },
+                            operatorpb::ListListeners { listeners },
                         ),
                     ),
                 }

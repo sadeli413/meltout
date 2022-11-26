@@ -1,3 +1,5 @@
+//! Extra commands for the server only
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]

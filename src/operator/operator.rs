@@ -16,7 +16,7 @@ impl Operator {
     pub async fn new(
         server_url: String,
         rootca: String,
-        domain_name: String
+        domain_name: String,
     ) -> Result<(Operator, Receiver<Result<Notification, Status>>), Error> {
         let mut rpc = super::net::new_rpcclient(server_url, rootca, domain_name).await?;
         let request = Registration {};

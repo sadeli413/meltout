@@ -1,8 +1,8 @@
 use std::io::Write;
-use tonic::Status;
 use tokio::sync::mpsc::Receiver;
+use tonic::Status;
 
-use crate::share::{Error, operatorpb::Notification};
+use crate::share::{operatorpb::Notification, Error};
 
 /// Constant stream of notifications
 pub async fn notification_loop(mut notifications_rx: Receiver<Result<Notification, Status>>) {

@@ -1,5 +1,5 @@
 use crate::share::operatorpb::{
-    listeners_request, Empty, ListImplants, ListenersRequest, NewListener, NewTaskRequest,
+    listeners_request, Empty, ListImplants, Listener, ListenersRequest, NewListener, NewTaskRequest,
 };
 use clap::{Parser, Subcommand};
 
@@ -25,13 +25,21 @@ pub struct Listeners {
 
 #[derive(Subcommand)]
 pub enum ListenersCommands {
-    // New listener at lhost:lport
+    /// New listener at lhost:lport
     New {
         #[clap(long, value_parser)]
         lhost: String,
 
         #[clap(long, value_parser, default_value_t = 9001)]
         lport: u16,
+
+        /// The server pem for HTTPS
+        #[clap(long, value_parser)]
+        server_pem: String,
+
+        /// The server key for HTTPS
+        #[clap(long, value_parser)]
+        server_key: String,
     },
     List,
 }
@@ -39,11 +47,22 @@ pub enum ListenersCommands {
 impl Listeners {
     pub fn to_protobuf(&self) -> ListenersRequest {
         let listeners_command = Some(match &self.command {
-            ListenersCommands::New { lhost, lport } => {
-                listeners_request::ListenersCommand::NewListener(NewListener {
+            ListenersCommands::New {
+                lhost,
+                lport,
+                server_pem,
+                server_key,
+            } => {
+                let listener = Listener {
                     id: "0".to_string(),
                     lhost: lhost.to_string(),
                     lport: *lport as u32,
+                };
+
+                listeners_request::ListenersCommand::NewListener(NewListener {
+                    listener: Some(listener),
+                    server_pem: server_pem.to_string(),
+                    server_key: server_key.to_string(),
                 })
             }
 

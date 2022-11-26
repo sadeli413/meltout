@@ -32,7 +32,7 @@ impl Commander for Operator {
                     let mut table = prettytable::Table::new();
                     table.add_row(row!["ID", "LHOST", "LPORT"]);
 
-                    for l in listeners.new_listeners {
+                    for l in listeners.listeners {
                         table.add_row(row![l.id, l.lhost, l.lport]);
                     }
                     table.printstd();

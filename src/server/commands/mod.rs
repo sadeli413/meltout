@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use super::net::operator_server;
-use super::parsers as server_parsers;
+// use super::parsers as server_parsers;
+use super::extra;
 use super::Server;
 use crate::share::parsers as share_parsers;
 use crate::share::{operatorpb, Commander, Console, Error};
@@ -30,7 +31,7 @@ impl Commander for Server {
                     let mut table = prettytable::Table::new();
                     table.add_row(row!["ID", "LHOST", "LPORT"]);
 
-                    for l in listeners.new_listeners {
+                    for l in listeners.listeners {
                         table.add_row(row![l.id, l.lhost, l.lport]);
                     }
                     table.printstd();
@@ -59,9 +60,9 @@ impl Commander for Server {
 
 // Special commands for the server
 impl Server {
-    fn operators(&self, parser: server_parsers::Operators) -> Result<(), Error> {
+    fn operators(&self, parser: extra::Operators) -> Result<(), Error> {
         match &parser.command {
-            server_parsers::OperatorsCommands::Enable { lhost, lport } => {
+            extra::OperatorsCommands::Enable { lhost, lport } => {
                 let ip = lhost
                     .parse()
                     .map_err(|_| Error::InvalidIP(lhost.to_string()))?;
@@ -85,5 +86,5 @@ pub fn add_commands(console: &mut Console<Server>) {
     crate::add_command!(console, share_parsers, listeners);
     crate::add_command!(console, share_parsers, task);
     crate::add_command!(console, share_parsers, implants);
-    crate::add_command!(console, server_parsers, operators);
+    crate::add_command!(console, extra, operators);
 }
