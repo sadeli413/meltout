@@ -7,10 +7,12 @@ use tokio::sync::Mutex;
 use server::Server;
 use share::Console;
 
+const DB_NAME: &str = "sqlite:./meltout.db?mode=rwc";
+
 #[tokio::main]
 async fn main() {
     let db = Arc::new(Mutex::new(
-        server::db::Db::new("sqlite:./meltout.db?mode=rwc")
+        server::db::Db::new(DB_NAME)
             .await
             .unwrap(),
     ));
